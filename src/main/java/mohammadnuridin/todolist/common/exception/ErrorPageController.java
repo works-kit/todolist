@@ -1,4 +1,4 @@
-package mohammadnuridin.todolist.common.exeception;
+package mohammadnuridin.todolist.common.exception;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
