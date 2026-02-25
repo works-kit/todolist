@@ -1,7 +1,5 @@
 package mohammadnuridin.todolist.common.dto;
 
-import org.springframework.http.HttpStatus;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class WebResponse<T> {
 
-    private HttpStatus code;
+    private Integer code;
 
     private String status;
 

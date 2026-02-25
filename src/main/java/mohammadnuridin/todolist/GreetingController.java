@@ -19,7 +19,7 @@ public class GreetingController {
     @GetMapping("/")
     public WebResponse<String> hello() {
         return WebResponse.<String>builder()
-                .code(HttpStatus.OK)
+                .code(HttpStatus.OK.value())
                 .status("success")
                 .data("Hello, welcome to the Todolist API!")
                 .build();
@@ -29,7 +29,7 @@ public class GreetingController {
     public WebResponse<String> greet(Locale locale) {
         String localizedMessage = messageSource.getMessage("greeting", null, locale);
         return WebResponse.<String>builder()
-                .code(HttpStatus.OK)
+                .code(HttpStatus.OK.value())
                 .status("success")
                 .data(localizedMessage)
                 .build();
