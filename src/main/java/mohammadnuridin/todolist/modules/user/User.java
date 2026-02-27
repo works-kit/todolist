@@ -1,4 +1,4 @@
-package mohammadnuridin.todolist.modules.auth;
+package mohammadnuridin.todolist.modules.user;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,6 +34,7 @@ public class User {
     @Column(nullable = false, length = 255)
     private String password;
 
+    @Column(length = 255)
     private String token;
 
     @Column(name = "token_expired_at")
@@ -54,6 +55,13 @@ public class User {
     public void prePersist() {
         if (this.id == null) {
             this.id = java.util.UUID.randomUUID().toString();
+            createdAt = LocalDateTime.now();
+            updatedAt = LocalDateTime.now();
         }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

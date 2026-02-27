@@ -1,7 +1,8 @@
-package mohammadnuridin.todolist.modules.auth;
+package mohammadnuridin.todolist.modules.user;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import mohammadnuridin.todolist.common.dto.WebResponse;
+import mohammadnuridin.todolist.core.security.AuthenticatedUser;
 
 @RestController
 @RequestMapping("/users")
@@ -31,12 +33,16 @@ public class UserController {
                 .build();
     }
 
-    @GetMapping(path = "/current", produces = MediaType.APPLICATION_JSON_VALUE)
-    public WebResponse<UserResponse> get(User user) {
-        // Asumsi: user didapat dari ArgumentResolver (Current User)
-        UserResponse userResponse = userService.get(user.getId());
+    // ─── GET /apiauth/me ───────────────────────────────────────────────────
+
+    @GetMapping("/current")
+    public WebResponse<UserResponse> get(
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        UserResponse user = userService.get(currentUser.getUserId());
         return WebResponse.<UserResponse>builder()
-                .data(userResponse)
+                .status("Current user retrieved")
+                .code(HttpStatus.OK.value())
+                .data(user)
                 .build();
     }
 

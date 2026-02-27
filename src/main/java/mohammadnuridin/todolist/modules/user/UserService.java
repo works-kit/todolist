@@ -1,4 +1,4 @@
-package mohammadnuridin.todolist.modules.auth;
+package mohammadnuridin.todolist.modules.user;
 
 import lombok.RequiredArgsConstructor;
 import mohammadnuridin.todolist.common.service.ValidationService;
@@ -24,15 +24,15 @@ public class UserService {
     public UserResponse register(UserRequest request) {
         validationService.validate(request);
         // 1. Cek duplikasi email
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(request.email())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "{user.email.already_exists}");
         }
 
         // 2. Map DTO ke Entity & Hash Password
         User user = User.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .name(request.name())
+                .email(request.email())
+                .password(passwordEncoder.encode(request.password()))
                 .build();
 
         // 3. Simpan (ID digenerate otomatis oleh @PrePersist di Entity)
@@ -62,11 +62,11 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "{user.not_found}"));
 
         // Update nama
-        user.setName(request.getName());
+        user.setName(request.name());
 
         // Update password jika diberikan (tidak kosong)
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (request.password() != null && !request.password().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.password()));
         }
 
         userRepository.saveAndFlush(user);
@@ -77,12 +77,9 @@ public class UserService {
      * Mapper sederhana dari Entity ke Response DTO
      */
     private UserResponse toResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
+        return new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail());
     }
 }

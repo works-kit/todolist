@@ -2,8 +2,8 @@ package mohammadnuridin.todolist.modules.todo;
 
 import jakarta.persistence.*;
 import lombok.*;
-import mohammadnuridin.todolist.modules.auth.User;
 import mohammadnuridin.todolist.modules.category.Category;
+import mohammadnuridin.todolist.modules.user.User;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;

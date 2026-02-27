@@ -10,8 +10,8 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
-import mohammadnuridin.todolist.modules.auth.User;
-import mohammadnuridin.todolist.modules.auth.UserRepository;
+import mohammadnuridin.todolist.modules.user.User;
+import mohammadnuridin.todolist.modules.user.UserRepository;
 
 @Component
 @RequiredArgsConstructor
