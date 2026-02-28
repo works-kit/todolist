@@ -25,7 +25,7 @@ public class UserService {
         validationService.validate(request);
         // 1. Cek duplikasi email
         if (userRepository.existsByEmail(request.email())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "{user.email.already_exists}");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_exists}");
         }
 
         // 2. Map DTO ke Entity & Hash Password
@@ -52,19 +52,36 @@ public class UserService {
     }
 
     /**
-     * Update data User (Nama & Password)
+     * Update data User (Nama, Email & Password)
      */
     @Transactional
-    public UserResponse update(String userId, UserRequest request) {
+    public UserResponse update(String userId, UpdateUserRequest request) {
         validationService.validate(request);
+
+        // Cek minimal satu field diisi
+        if (!request.hasAnyField()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "{user.update.empty_request}");
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "{user.not_found}"));
 
-        // Update nama
-        user.setName(request.name());
+        // Update name — hanya jika disertakan
+        if (request.name() != null && !request.name().isBlank()) {
+            user.setName(request.name());
+        }
 
-        // Update password jika diberikan (tidak kosong)
+        // Update email — hanya jika disertakan dan berbeda dari sekarang
+        if (request.email() != null && !request.email().isBlank()
+                && !request.email().equals(user.getEmail())) {
+            boolean emailTaken = userRepository.existsByEmailAndIdNot(request.email(), userId);
+            if (emailTaken) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_exists}");
+            }
+            user.setEmail(request.email());
+        }
+
+        // Update password — hanya jika disertakan
         if (request.password() != null && !request.password().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.password()));
         }

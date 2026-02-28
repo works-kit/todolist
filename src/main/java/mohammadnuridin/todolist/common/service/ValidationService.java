@@ -15,9 +15,12 @@ public class ValidationService {
     private final Validator validator;
 
     public void validate(Object request) {
-        Set<ConstraintViolation<Object>> constraintViolations = validator.validate(request);
-        if (!constraintViolations.isEmpty()) {
-            throw new ConstraintViolationException(constraintViolations);
+        if (request == null) {
+            throw new ConstraintViolationException("Request must not be null", Set.of());
+        }
+        Set<ConstraintViolation<Object>> violations = validator.validate(request);
+        if (!violations.isEmpty()) {
+            throw new ConstraintViolationException(violations);
         }
     }
 }

@@ -1,23 +1,14 @@
 package mohammadnuridin.todolist.config;
 
-import java.util.List;
-
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import lombok.RequiredArgsConstructor;
-import mohammadnuridin.todolist.resolver.UserArgumentResolver;
 
 @Configuration
 @RequiredArgsConstructor
 public class WebConfiguration implements WebMvcConfigurer {
-
-    private final UserArgumentResolver userArgumentResolver;
-
-    @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        WebMvcConfigurer.super.addArgumentResolvers(resolvers);
-        resolvers.add(userArgumentResolver);
-    }
+    // Saat ini belum ada konfigurasi khusus, tapi kelas ini sudah siap untuk
+    // digunakan jika nanti dibutuhkan.
+    // Contoh penggunaan: menambahkan interceptor, formatter, dll.
 }

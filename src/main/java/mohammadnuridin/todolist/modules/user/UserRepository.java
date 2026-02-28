@@ -13,4 +13,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findFirstByToken(String token);
 
     boolean existsByEmail(String email);
+
+    boolean existsByEmailAndIdNot(String email, String id);
 }

@@ -34,3 +34,32 @@ volumes:
 networks:
   todolist_network:
     driver: bridge
+
+# .github/workflows/security.yml
+# name: Security Pipeline
+
+# on: [push, pull_request]
+
+# jobs:
+#   test:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+
+#       # Unit & Integration Tests
+#       - name: Run Tests
+#         run: ./mvnw test
+
+#       # SAST — Static Analysis Security Testing
+#       - name: Run SpotBugs (Find Bugs)
+#         run: ./mvnw spotbugs:check
+
+#       # Dependency vulnerability scan
+#       - name: OWASP Dependency Check
+#         run: ./mvnw dependency-check:check
+
+#       # Code quality
+#       - name: SonarCloud Scan
+#         uses: SonarSource/sonarcloud-github-action@master
+#         env:
+#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
