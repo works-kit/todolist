@@ -29,7 +29,7 @@ public class UserService {
 
         // Cek duplikasi di aplikasi layer (fast fail, friendly error message)
         if (userRepository.existsByEmail(normalizedEmail)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_exists}");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_taken}");
         }
 
         User user = User.builder()
@@ -44,7 +44,7 @@ public class UserService {
             // Race condition: thread lain commit lebih dulu di antara existsByEmail() dan
             // saveAndFlush()
             // DB unique constraint menangkap ini dengan aman
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_exists}");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_taken}");
         }
 
         return toResponse(user);
@@ -69,7 +69,7 @@ public class UserService {
 
         // Cek minimal satu field diisi
         if (!request.hasAnyField()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "{user.update.empty_request}");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "{user.update.no_field}");
         }
 
         User user = userRepository.findById(userId)
@@ -85,7 +85,7 @@ public class UserService {
                 && !request.email().equals(user.getEmail())) {
             boolean emailTaken = userRepository.existsByEmailAndIdNot(request.email(), userId);
             if (emailTaken) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_exists}");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_taken}");
             }
             user.setEmail(request.email());
         }
