@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 
 @Service
@@ -23,20 +24,28 @@ public class UserService {
     @Transactional
     public UserResponse register(UserRequest request) {
         validationService.validate(request);
-        // 1. Cek duplikasi email
-        if (userRepository.existsByEmail(request.email())) {
+
+        String normalizedEmail = request.email().trim().toLowerCase();
+
+        // Cek duplikasi di aplikasi layer (fast fail, friendly error message)
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_exists}");
         }
 
-        // 2. Map DTO ke Entity & Hash Password
         User user = User.builder()
                 .name(request.name())
-                .email(request.email())
+                .email(normalizedEmail)
                 .password(passwordEncoder.encode(request.password()))
                 .build();
 
-        // 3. Simpan (ID digenerate otomatis oleh @PrePersist di Entity)
-        userRepository.saveAndFlush(user);
+        try {
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            // Race condition: thread lain commit lebih dulu di antara existsByEmail() dan
+            // saveAndFlush()
+            // DB unique constraint menangkap ini dengan aman
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "{user.email.already_exists}");
+        }
 
         return toResponse(user);
     }

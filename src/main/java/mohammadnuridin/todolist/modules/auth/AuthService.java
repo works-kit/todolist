@@ -24,7 +24,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final ValidationService validationService;
 
-    @Value("${application.security.jwt.refresh-token-expiration}")
+    @Value("${app.jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
 
     // ─── Login ─────────────────────────────────────────────────────────────────

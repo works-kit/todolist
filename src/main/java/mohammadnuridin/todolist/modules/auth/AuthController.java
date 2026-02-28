@@ -23,7 +23,7 @@ public class AuthController {
 
         private final AuthService authService;
 
-        @Value("${application.security.jwt.refresh-token-expiration}")
+        @Value("${app.jwt.refresh-token-expiration}")
         private long refreshTokenExpiration;
 
         // Cookie name constant

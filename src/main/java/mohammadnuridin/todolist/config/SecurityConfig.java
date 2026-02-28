@@ -23,18 +23,27 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
         private final JwtAuthFilter jwtAuthFilter;
+        private final SecurityHeadersFilter securityHeadersFilter;
+        private final RateLimiterFilter rateLimiterFilter;
         private final ObjectMapper objectMapper;
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                                 .csrf(AbstractHttpConfigurer::disable)
+
+                                // Nonaktifkan default security headers Spring — kita atur sendiri via
+                                // SecurityHeadersFilter
+                                .headers(AbstractHttpConfigurer::disable)
 
                                 // CORS — penting untuk Web agar cookie bisa dikirim lintas origin
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -48,7 +57,9 @@ public class SecurityConfig {
                                                         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                                                         response.getWriter().write(
                                                                         objectMapper.writeValueAsString(
-                                                                                        Map.of("success", false,
+                                                                                        Map.of(
+                                                                                                        "success",
+                                                                                                        false,
                                                                                                         "message",
                                                                                                         "Unauthorized — token missing or invalid")));
                                                 }))
@@ -63,6 +74,13 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .anyRequest().authenticated())
 
+                                // ── Urutan filter (dari atas ke bawah = awal ke akhir) ──
+                                //
+                                // 1. SecurityHeadersFilter — inject security headers ke setiap response
+                                // 2. RateLimiterFilter — cek rate limit sebelum request diproses lebih jauh
+                                // 3. JwtAuthFilter — validasi JWT token
+                                .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
+                                .addFilterBefore(rateLimiterFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();

@@ -19,10 +19,10 @@ import java.util.function.Function;
 @Slf4j
 public class JwtService {
 
-    @Value("${application.security.jwt.secret-key}")
+    @Value("${app.jwt.secret-key}")
     private String secretKey;
 
-    @Value("${application.security.jwt.access-token-expiration}")
+    @Value("${app.jwt.access-token-expiration}")
     private long accessTokenExpiration;
 
     // ─── Token Generation ──────────────────────────────────────────────────────
