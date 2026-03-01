@@ -136,28 +136,29 @@ public class AuthController {
         /**
          * Set HttpOnly Cookie untuk refresh token.
          *
+         * Menggunakan addHeader() secara langsung — TIDAK menggunakan
+         * response.addCookie() —
+         * karena Java Cookie API tidak mendukung atribut SameSite secara native.
+         * Memanggil addCookie() + addHeader() secara bersamaan akan menghasilkan
+         * DUA Set-Cookie header: satu tanpa SameSite (dari addCookie) dan satu
+         * dengan SameSite (dari addHeader), yang menyebabkan browser dan test
+         * membaca header yang salah.
+         *
          * Flag keamanan:
-         * - HttpOnly : JS tidak bisa baca (anti-XSS)
-         * - Secure : hanya dikirim via HTTPS (aktifkan di production)
-         * - SameSite=Strict : anti-CSRF
-         * - Path=/apiauth/refresh : cookie hanya dikirim ke endpoint ini
+         * - HttpOnly : JS tidak bisa baca token (anti-XSS)
+         * - SameSite=Strict: cookie tidak dikirim pada cross-site request (anti-CSRF)
+         * - Path=/api/auth : cookie hanya dikirim ke endpoint auth, bukan ke seluruh
+         * app
+         * - Secure : aktifkan di production (HTTPS) dengan uncomment baris Secure
          */
         private void setRefreshTokenCookie(HttpServletResponse response, String token) {
-                Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE, token);
-                cookie.setHttpOnly(true);
-                cookie.setSecure(false); // ← ganti ke true di production (HTTPS)
-                cookie.setPath("/api/auth"); // kirim cookie hanya ke path auth
-                cookie.setMaxAge((int) (refreshTokenExpiration / 1000)); // ms → detik
-                // SameSite harus di-set manual via header karena Java Cookie API belum support
-                response.addCookie(cookie);
-                // Override dengan header Set-Cookie langsung untuk bisa set SameSite
                 response.addHeader("Set-Cookie",
                                 REFRESH_TOKEN_COOKIE + "=" + token
                                                 + "; Max-Age=" + (refreshTokenExpiration / 1000)
                                                 + "; Path=/api/auth"
                                                 + "; HttpOnly"
                                                 + "; SameSite=Strict"
-                // + "; Secure" // aktifkan di production
+                // + "; Secure" // aktifkan di production (wajib jika HTTPS)
                 );
         }
 
@@ -168,7 +169,7 @@ public class AuthController {
                 response.addHeader("Set-Cookie",
                                 REFRESH_TOKEN_COOKIE + "="
                                                 + "; Max-Age=0"
-                                                + "; Path=/apiauth"
+                                                + "; Path=/api/auth"
                                                 + "; HttpOnly"
                                                 + "; SameSite=Strict");
         }
