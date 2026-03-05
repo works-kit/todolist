@@ -61,13 +61,24 @@ public class SecurityConfig {
                                                 }))
 
                                 .authorizeHttpRequests(auth -> auth
+                                                // Setelah .securityMatcher("/api/**"),
+                                                // path di sini harus include prefix /api/
                                                 .requestMatchers(
-                                                                "/",
-                                                                "/greet",
-                                                                "/auth/login",
-                                                                "/users/register",
-                                                                "/auth/refresh")
+                                                                "/api/",
+                                                                "/api/greet",
+                                                                "/api/auth/login",
+                                                                "/api/users/register",
+                                                                "/api/auth/refresh",
+                                                                // Actuator ikut context-path /api → /api/actuator/**
+                                                                // health & info: publik untuk load balancer
+                                                                "/api/actuator/health",
+                                                                "/api/actuator/info")
                                                 .permitAll()
+                                                // Endpoint actuator lainnya (prometheus, metrics, dll.)
+                                                // hanya bisa diakses dari localhost
+                                                .requestMatchers("/api/actuator/**")
+                                                .access(new org.springframework.security.web.access.expression.WebExpressionAuthorizationManager(
+                                                                "hasIpAddress('127.0.0.1') or hasIpAddress('::1')"))
                                                 .anyRequest().authenticated())
 
                                 .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)

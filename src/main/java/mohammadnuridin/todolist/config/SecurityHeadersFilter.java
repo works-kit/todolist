@@ -25,6 +25,19 @@ import java.io.IOException;
 @Component
 public class SecurityHeadersFilter extends OncePerRequestFilter {
 
+        /**
+         * Skip filter untuk path Actuator.
+         * SecurityHeadersFilter adalah @Component sehingga dijalankan untuk SEMUA
+         * request. Tanpa ini, filter akan berjalan sebelum ActuatorSecurityConfig
+         * sempat menangani request ke /actuator/**, yang bisa menyebabkan konflik.
+         */
+        @Override
+        protected boolean shouldNotFilter(HttpServletRequest request) {
+                String path = request.getRequestURI();
+                // context-path=/api → actuator ada di /api/actuator/**
+                return path.startsWith("/api/actuator");
+        }
+
         @Override
         protected void doFilterInternal(HttpServletRequest request,
                         HttpServletResponse response,
