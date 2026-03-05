@@ -39,15 +39,13 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
+                                // ✅ TAMBAHKAN INI — batasi chain ini hanya untuk /api/**
+                                // Actuator (/actuator/**) akan ditangani oleh ActuatorSecurityConfig
+                                .securityMatcher("/api/**")
+
                                 .csrf(AbstractHttpConfigurer::disable)
-
-                                // Nonaktifkan default security headers Spring — kita atur sendiri via
-                                // SecurityHeadersFilter
                                 .headers(AbstractHttpConfigurer::disable)
-
-                                // CORS — penting untuk Web agar cookie bisa dikirim lintas origin
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
@@ -56,12 +54,10 @@ public class SecurityConfig {
                                                         response.setStatus(HttpStatus.UNAUTHORIZED.value());
                                                         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                                                         response.getWriter().write(
-                                                                        objectMapper.writeValueAsString(
-                                                                                        Map.of(
-                                                                                                        "success",
-                                                                                                        false,
-                                                                                                        "message",
-                                                                                                        "Unauthorized — token missing or invalid")));
+                                                                        objectMapper.writeValueAsString(Map.of(
+                                                                                        "success", false,
+                                                                                        "message",
+                                                                                        "Unauthorized — token missing or invalid")));
                                                 }))
 
                                 .authorizeHttpRequests(auth -> auth
@@ -74,11 +70,6 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .anyRequest().authenticated())
 
-                                // ── Urutan filter (dari atas ke bawah = awal ke akhir) ──
-                                //
-                                // 1. SecurityHeadersFilter — inject security headers ke setiap response
-                                // 2. RateLimiterFilter — cek rate limit sebelum request diproses lebih jauh
-                                // 3. JwtAuthFilter — validasi JWT token
                                 .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(rateLimiterFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

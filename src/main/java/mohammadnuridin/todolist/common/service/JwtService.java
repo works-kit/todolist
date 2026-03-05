@@ -15,8 +15,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-@Service
 @Slf4j
+@Service
 public class JwtService {
 
     @Value("${app.jwt.secret-key}")
