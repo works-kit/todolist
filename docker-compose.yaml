@@ -1,6 +1,9 @@
 version: "3.8"
 
 services:
+  # ──────────────────────────────────────────────
+  # DATABASE
+  # ──────────────────────────────────────────────
   mysql_db:
     image: mysql:8.0
     container_name: mysql_db
@@ -28,6 +31,29 @@ services:
       timeout: 5s
       retries: 5
 
+  # ──────────────────────────────────────────────
+  # REDIS
+  # ──────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - todolist_network
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: "0.5"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ──────────────────────────────────────────────
+  # SPRING BOOT APP
+  # ──────────────────────────────────────────────
   spring_app:
     build:
       context: .
@@ -36,22 +62,23 @@ services:
     container_name: spring_app
     restart: always
     ports:
-      # Host:Container
-      # App jalan di 8080 dalam container (server.port=8080)
-      # Akses dari host: http://localhost:8081 (bypass Nginx, untuk debug)
       - "8081:8080"
+      - "8082:8082"
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8080
       DB_URL: jdbc:mysql://mysql_db:3306/todolist_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_USERNAME: root
       DB_PASSWORD: "asdf;lkj"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
-      JWT_SECRET_KEY: "your_super_long_random_secret_key_here"
+      JWT_SECRET_KEY: "your_super_long_random_secret_key_here_minimum_256_bits"
       JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m -XX:+UseContainerSupport"
     depends_on:
       mysql_db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - todolist_network
@@ -59,15 +86,21 @@ services:
     mem_reservation: 256m
     cpus: "1.0"
     healthcheck:
-      test:
-        [
+      test: [
           "CMD-SHELL",
-          "wget -qO- http://localhost:8080/actuator/health || exit 1",
+          # Actuator jalan di port 8082 (management.server.port=8082)
+          # path /internal/actuator/health (management.endpoints.web.base-path=/internal/actuator)
+          # wget --server-response untuk debug, -qO- untuk output ke stdout
+          "wget -qO- http://localhost:8082/internal/actuator/health || exit 1",
         ]
-      interval: 15s
-      timeout: 5s
-      retries: 5
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
 
+  # ──────────────────────────────────────────────
+  # NGINX
+  # ──────────────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
     container_name: nginx
@@ -88,6 +121,14 @@ services:
     mem_reservation: 64m
     cpus: "0.5"
 
+  # ──────────────────────────────────────────────
+  # PROMETHEUS
+  # FIX Windows: mount FOLDER ./monitoring bukan file langsung.
+  # Docker Desktop di Windows dengan path mengandung spasi ("HYPE AMD")
+  # gagal mount file secara langsung → error "not a directory".
+  # Solusi: mount seluruh folder ./monitoring, lalu arahkan
+  # --config.file ke path file di dalam folder tersebut.
+  # ──────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v2.53.0
     container_name: prometheus
@@ -95,10 +136,13 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Mount subfolder ./monitoring/prometheus saja (bukan parent folder)
+      # Ini fix untuk Docker Desktop Windows yang gagal resolve file
+      # ketika parent folder-nya punya subfolder lain (grafana/, dll.)
+      - ./monitoring/prometheus:/etc/prometheus-config:ro
       - prometheus_data:/prometheus
     command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--config.file=/etc/prometheus-config/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
       - "--web.enable-lifecycle"
     networks:
@@ -109,6 +153,9 @@ services:
     mem_limit: 256m
     mem_reservation: 128m
 
+  # ──────────────────────────────────────────────
+  # GRAFANA
+  # ──────────────────────────────────────────────
   grafana:
     image: grafana/grafana:11.1.0
     container_name: grafana

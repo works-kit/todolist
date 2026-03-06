@@ -4,13 +4,10 @@ global:
 
 scrape_configs:
   - job_name: "todolist-api-prod"
+    # Actuator prod berjalan di port 8082 (management.server.port=8082)
+    # dengan base path /internal/actuator (bukan /actuator default)
     metrics_path: "/internal/actuator/prometheus"
     static_configs:
-      - targets: ["spring_app:8080"]
+      - targets: ["spring_app:8082"]
     scrape_interval: 10s
     scrape_timeout: 5s
-    relabel_configs:
-      - source_labels: [__address__]
-        regex: (.+):8082
-        target_label: instance
-        replacement: $1

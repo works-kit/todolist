@@ -25,8 +25,9 @@ WORKDIR /app
 # Copy hasil build dari stage pertama
 COPY --from=build /app/target/*.jar app.jar
 
-# Actuator port (management.server.port=8082 di prod)
-EXPOSE 8081
+# Port 8080 — app port (server.port=8080 di application.properties)
+# Port 8082 — actuator management port (management.server.port=8082 di prod profile)
+EXPOSE 8080
 EXPOSE 8082
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
