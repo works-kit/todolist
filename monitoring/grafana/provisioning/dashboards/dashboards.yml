@@ -1,0 +1,9 @@
+providers:
+  - name: "todolist-dashboards"
+    orgId: 1
+    folder: "Todolist API"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards

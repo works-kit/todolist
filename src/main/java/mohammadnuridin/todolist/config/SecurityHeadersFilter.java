@@ -34,8 +34,7 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
         @Override
         protected boolean shouldNotFilter(HttpServletRequest request) {
                 String path = request.getRequestURI();
-                // context-path=/api → actuator ada di /api/actuator/**
-                return path.startsWith("/api/actuator");
+                return path.contains("/actuator");
         }
 
         @Override

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import mohammadnuridin.todolist.core.security.JwtAuthFilter;
 
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -39,10 +42,6 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
-                                // ✅ TAMBAHKAN INI — batasi chain ini hanya untuk /api/**
-                                // Actuator (/actuator/**) akan ditangani oleh ActuatorSecurityConfig
-                                .securityMatcher("/api/**")
-
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .headers(AbstractHttpConfigurer::disable)
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -61,30 +60,48 @@ public class SecurityConfig {
                                                 }))
 
                                 .authorizeHttpRequests(auth -> auth
-                                                // Setelah .securityMatcher("/api/**"),
-                                                // path di sini harus include prefix /api/
                                                 .requestMatchers(
-                                                                "/api/",
-                                                                "/api/greet",
-                                                                "/api/auth/login",
-                                                                "/api/users/register",
-                                                                "/api/auth/refresh",
-                                                                // Actuator ikut context-path /api → /api/actuator/**
-                                                                // health & info: publik untuk load balancer
-                                                                "/api/actuator/health",
-                                                                "/api/actuator/info")
+                                                                "/",
+                                                                "/greet",
+                                                                "/auth/login",
+                                                                "/users/register",
+                                                                "/auth/refresh")
                                                 .permitAll()
-                                                // Endpoint actuator lainnya (prometheus, metrics, dll.)
-                                                // hanya bisa diakses dari localhost
-                                                .requestMatchers("/api/actuator/**")
-                                                .access(new org.springframework.security.web.access.expression.WebExpressionAuthorizationManager(
+
+                                                // Dev: actuator ada di /actuator/** (setelah context-path /api
+                                                // di-strip)
+                                                // Prod: tidak perlu rule ini — actuator di port 8082 (container
+                                                // terpisah,
+                                                // SecurityFilterChain ini tidak berlaku di sana)
+                                                .requestMatchers("/actuator/**")
+                                                .access(new WebExpressionAuthorizationManager(
                                                                 "hasIpAddress('127.0.0.1') or hasIpAddress('::1')"))
+
                                                 .anyRequest().authenticated())
 
                                 .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(rateLimiterFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
+                return http.build();
+        }
+
+        // Tambahkan bean ini untuk prod — guard actuator port 8082
+        @Bean
+        @ConditionalOnProperty(name = "management.server.port")
+        public SecurityFilterChain managementSecurityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                .securityMatcher(EndpointRequest.toAnyEndpoint())
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(EndpointRequest.toAnyEndpoint())
+                                                .access(new WebExpressionAuthorizationManager(
+                                                                "hasIpAddress('127.0.0.1') or hasIpAddress('::1') " +
+                                                                                "or hasIpAddress('10.0.0.0/8')")) // internal
+                                                                                                                  // network
+                                                                                                                  // prod
+                                                .anyRequest().denyAll())
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
                 return http.build();
         }
 

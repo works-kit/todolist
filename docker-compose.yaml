@@ -36,20 +36,19 @@ services:
     container_name: spring_app
     restart: always
     ports:
+      # Host:Container
+      # App jalan di 8080 dalam container (server.port=8080)
+      # Akses dari host: http://localhost:8081 (bypass Nginx, untuk debug)
       - "8081:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-
       DB_URL: jdbc:mysql://mysql_db:3306/todolist_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_USERNAME: root
       DB_PASSWORD: "asdf;lkj"
-
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
-
       JWT_SECRET_KEY: "your_super_long_random_secret_key_here"
-
       JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m -XX:+UseContainerSupport"
     depends_on:
       mysql_db:
@@ -59,9 +58,82 @@ services:
     mem_limit: 512m
     mem_reservation: 256m
     cpus: "1.0"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8080/actuator/health || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    networks:
+      - todolist_network
+    depends_on:
+      spring_app:
+        condition: service_healthy
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: "0.5"
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    networks:
+      - todolist_network
+    depends_on:
+      spring_app:
+        condition: service_healthy
+    mem_limit: 256m
+    mem_reservation: 128m
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+    networks:
+      - todolist_network
+    depends_on:
+      - prometheus
+    mem_limit: 256m
+    mem_reservation: 128m
 
 volumes:
   mysql_volume:
+  prometheus_data:
+  grafana_data:
 
 networks:
   todolist_network:
